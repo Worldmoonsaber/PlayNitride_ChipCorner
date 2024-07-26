@@ -360,4 +360,32 @@ void GetChipCorner(Mat src, paramChipCorner Param, Point& CornerPoint, int& notF
         notFoundReason = 8;
         throw "Cannot load image.";
     }
+
+
+    //Mat edgeImg;
+
+    //Canny(src, ResultImg, 1, 255);
+
+
+    //vector<BlobInfo> lstChip = RegionPartition(edgeImg);
+    Point crossCenter;
+
+    /*Parm 1. image pre-processing*/
+    float alpha = 2; //2
+    float beta = -50;//-50
+
+    /*Parm 2. auto-thres filter */
+    int adaptWsize = 235; //235
+    int adaptKsize = 4;  //8
+
+    Mat element = getStructuringElement(MORPH_RECT, Size(20,20));
+    vector <vector<Point>>contours;
+    int thresfilter = THRESH_BINARY;
+    
+    //EnhanceIMG = ContrastEnhancement(grayimg, alpha, beta);
+
+    threshold(src, ResultImg, 15,255, THRESH_BINARY);
+
+    ////Step 2. auto-thres filter::
+    //cv::adaptiveThreshold(src, ResultImg, 255, ADAPTIVE_THRESH_MEAN_C, thresfilter, adaptWsize, adaptKsize);
 }

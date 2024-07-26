@@ -1,8 +1,22 @@
 
 #include "OpenCV_Extension_Tool.h"
 
-void RegionFloodFill(Mat& ImgBinary, int x, int y, vector<Point>& vectorPoint, vector<Point>& vContour)
+/// <summary>
+/// 
+/// </summary>
+/// <param name="ImgBinary"></param>
+/// <param name="x"></param>
+/// <param name="y"></param>
+/// <param name="vectorPoint"></param>
+/// <param name="vContour"></param>
+/// <param name="maxArea"></param>
+/// <param name="isOverSizeExtension">輸入前必須設定為false</param>
+void RegionFloodFill(Mat& ImgBinary, int x, int y, vector<Point>& vectorPoint, vector<Point>& vContour,int maxArea,bool& isOverSizeExtension)
 {
+	if (maxArea < vectorPoint.size())
+		return;
+
+	uchar tagOverSize = 10;
 	uchar tagIdx = 101;
 
 	if (ImgBinary.at<uchar>(y, x) == 255)
@@ -43,8 +57,9 @@ void RegionFloodFill(Mat& ImgBinary, int x, int y, vector<Point>& vectorPoint, v
 			}
 
 			if (ImgBinary.at<uchar>(j, i) == 255)
-				RegionFloodFill(ImgBinary, i, j, vectorPoint, vContour);
-
+				RegionFloodFill(ImgBinary, i, j, vectorPoint, vContour, maxArea, isOverSizeExtension);
+			else if (ImgBinary.at<uchar>(j, i) == tagOverSize)
+				isOverSizeExtension = true;
 		}
 
 #pragma endregion
@@ -53,37 +68,85 @@ void RegionFloodFill(Mat& ImgBinary, int x, int y, vector<Point>& vectorPoint, v
 		vContour.push_back(Point(x, y));
 }
 
-
-vector<BlobInfo> RegionPartition(Mat& ImgBinary)
+void RegionPaint(Mat& ImgBinary, vector<Point> vPoint, uchar PaintIdx)
 {
+	for (int i = 0; i < vPoint.size(); i++)
+		ImgBinary.at<uchar>(vPoint[i].y, vPoint[i].x) = PaintIdx;
+}
+
+vector<BlobInfo> RegionPartition(Mat& ImgBinary,int maxArea, int minArea)
+{
+	vector<cv::Point> vPt;
+	findNonZero(ImgBinary, vPt);
+
 	vector<BlobInfo> lst;
+	uchar tagOverSize = 10;
 
 	Mat ImgTag = ImgBinary.clone();
 
+	for (int k = 0; k < vPt.size(); k++)
+	{
+		int val = ImgTag.at<uchar>(vPt[k].y, vPt[k].x);
+		bool isOverSizeExtension = false;
+
+		if (val == 255)
+		{
+			vector<Point> vArea;
+			vector<Point> vContour;
+			RegionFloodFill(ImgTag, vPt[k].x, vPt[k].y, vArea, vContour, maxArea, isOverSizeExtension);
+
+			if (vArea.size() > maxArea || isOverSizeExtension)
+			{
+				RegionPaint(ImgTag, vArea, tagOverSize);
+				continue;
+			}
+			else if (vArea.size() <= minArea)
+			{
+				RegionPaint(ImgTag, vArea, 0);
+				continue;
+			}
+
+			BlobInfo regionInfo = BlobInfo(vArea, vContour);
+			RegionPaint(ImgTag, vArea, 0);
+			lst.push_back(regionInfo);
+		}
+
+	}
+
+	/*
 	for (int i = 0; i < ImgBinary.cols; i++)
 		for (int j = 0; j < ImgBinary.rows; j++)
 		{
 			int val = ImgTag.at<uchar>(j, i);
+			bool isOverSizeExtension = false;
 
 			if (val == 255)
 			{
 				vector<Point> vArea;
 				vector<Point> vContour;
+				RegionFloodFill(ImgTag, i, j, vArea, vContour, maxArea, isOverSizeExtension);
 
-				RegionFloodFill(ImgTag, i, j, vArea, vContour);
+				if (vArea.size() > maxArea|| isOverSizeExtension)
+				{
+					RegionPaint(ImgTag, vArea, tagOverSize);
+					continue;
+				}
+				else if (vArea.size() <= minArea)
+				{
+					RegionPaint(ImgTag, vArea, 0);
+					continue;
+				}
 
 				BlobInfo regionInfo = BlobInfo(vArea, vContour);
 
-				for (int i = 0; i < vArea.size(); i++)
-					ImgTag.at<uchar>(vArea[i].y, vArea[i].x) = 0;
+				RegionPaint(ImgTag, vArea, 0);
 
 				lst.push_back(regionInfo);
 
 			}
 
 		}
-
-
+	*/
 	ImgTag.release();
 
 	return lst;
@@ -179,13 +242,27 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 
 	}
 
-	if (minArea > _area)
+	_bulkiness = CV_PI * _Ra * _Rb / _area*1.0;
+
+
+	if (minArea < _area)
 		_rectangularity = minArea / _area;
 	else
 		_rectangularity = _area / minArea;
 
 	_rectangularity = abs(_rectangularity);
 
+
+	_compactness = (1.0 * _contour.size()) * (1.0 * _contour.size()) / (4.0 * CV_PI * _area);
+
+	// _compactness 公式
+	//
+	// 
+	//  _compactness= (周長)^2/ (4*PI*面積)
+	//
+	//  可以推算出 理論上 目標物的 _compactness 數值 在用此數值進行過濾
+	//
+	//
 }
 
 void BlobInfo::Release()
@@ -260,4 +337,34 @@ float BlobInfo::Ra()
 float BlobInfo::Rb()
 {
 	return _Rb;
+}
+
+int BlobInfo::Xmin()
+{
+	return _XminBound;
+}
+
+int BlobInfo::Ymin()
+{
+	return _YminBound;
+}
+
+int BlobInfo::Xmax()
+{
+	return _XmaxBound;
+}
+
+int BlobInfo::Ymax()
+{
+	return _YmaxBound;
+}
+
+float BlobInfo::Bulkiness()
+{
+	return _bulkiness;
+}
+
+float BlobInfo::Compactness()
+{
+	return _compactness;
 }
