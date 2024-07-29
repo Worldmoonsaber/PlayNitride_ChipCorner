@@ -74,46 +74,13 @@ void RegionPaint(Mat& ImgBinary, vector<Point> vPoint, uchar PaintIdx)
 		ImgBinary.at<uchar>(vPoint[i].y, vPoint[i].x) = PaintIdx;
 }
 
-vector<BlobInfo> RegionPartition(Mat& ImgBinary,int maxArea, int minArea)
+vector<BlobInfo> RegionPartition(Mat ImgBinary,int maxArea, int minArea)
 {
-	vector<cv::Point> vPt;
-	findNonZero(ImgBinary, vPt);
-
 	vector<BlobInfo> lst;
 	uchar tagOverSize = 10;
 
 	Mat ImgTag = ImgBinary.clone();
 
-	for (int k = 0; k < vPt.size(); k++)
-	{
-		int val = ImgTag.at<uchar>(vPt[k].y, vPt[k].x);
-		bool isOverSizeExtension = false;
-
-		if (val == 255)
-		{
-			vector<Point> vArea;
-			vector<Point> vContour;
-			RegionFloodFill(ImgTag, vPt[k].x, vPt[k].y, vArea, vContour, maxArea, isOverSizeExtension);
-
-			if (vArea.size() > maxArea || isOverSizeExtension)
-			{
-				RegionPaint(ImgTag, vArea, tagOverSize);
-				continue;
-			}
-			else if (vArea.size() <= minArea)
-			{
-				RegionPaint(ImgTag, vArea, 0);
-				continue;
-			}
-
-			BlobInfo regionInfo = BlobInfo(vArea, vContour);
-			RegionPaint(ImgTag, vArea, 0);
-			lst.push_back(regionInfo);
-		}
-
-	}
-
-	/*
 	for (int i = 0; i < ImgBinary.cols; i++)
 		for (int j = 0; j < ImgBinary.rows; j++)
 		{
@@ -146,9 +113,9 @@ vector<BlobInfo> RegionPartition(Mat& ImgBinary,int maxArea, int minArea)
 			}
 
 		}
-	*/
-	ImgTag.release();
 
+	ImgTag.release();
+	ImgBinary.release();
 	return lst;
 
 }
