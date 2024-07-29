@@ -23,8 +23,10 @@ void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCor
 	int notFoundReason = 0;
 	float angle = 0;
 
-	Mat image_input(imageParm.rows, imageParm.cols, CV_8UC3, &imageIN[0]); // THIS IS THE INPUT IMAGE, POINTER TO DATA			
-	Mat image_output(imageParm.rows, imageParm.cols, CV_8UC3, &imageOUT[0]);
+
+	// P.S: Laview 輸入影像格式為 RGBA
+	Mat image_input(imageParm.rows, imageParm.cols, CV_8UC4, &imageIN[0]); // THIS IS THE INPUT IMAGE, POINTER TO DATA		
+	Mat image_output(imageParm.rows, imageParm.cols, CV_8UC4, &imageOUT[0]);
 
 	try
 	{
@@ -37,10 +39,7 @@ void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCor
 	} //try loop
 	catch (const char* message)
 	{
-
 		std::cout << "check catch state:: " << notFoundReason << endl;
-
-
 	}//catch loop
 
 	if (notFoundReason == 0) //&& imageParm.Outputmode == 0
@@ -48,6 +47,7 @@ void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCor
 		GetChipCorner(image_input, Param, notFoundReason, ptCorner, angle, image_output);
 	}
 
+	image_input.release();
 	std::cout << "check img state:: " << notFoundReason << endl;
 	std::cout << "check center is ::" << ptCorner << endl;
 	std::cout << "check angle is ::" << angle << endl;

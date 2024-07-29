@@ -1,6 +1,15 @@
 #include "MTChipCorner_lib.h"
 #include "OpenCV_Extension_Tool.h"
 
+/// <summary>
+/// 已測試 RGB RGBA GRAY 影像皆可以正常運算 輸出
+/// </summary>
+/// <param name="src"></param>
+/// <param name="Param"></param>
+/// <param name="notFoundReason"></param>
+/// <param name="CornerPoint"></param>
+/// <param name="fAngleOutput"></param>
+/// <param name="imgOut"></param>
 void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& CornerPoint, float& fAngleOutput, Mat& imgOut)
 {
     if (src.empty())
@@ -31,6 +40,8 @@ void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& C
 
     if (src.channels() == 3)
         cvtColor(src, grayimg, COLOR_RGB2GRAY);
+    else if(src.channels() == 4)
+        cvtColor(src, grayimg, COLOR_RGBA2GRAY);
     else
         grayimg = src;
 
@@ -149,19 +160,53 @@ void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& C
     Point SecondPoint = vertices[x_sample_level];
 
     imgOut = src.clone();
-    cv::line(imgOut,
-        SecondPoint, CornerPoint,
-        Scalar(0, 255, 0));
-
-    cv::line(imgOut,
-        Point2f(SecondPoint.x, CornerPoint.y), Point2f(CornerPoint.x, CornerPoint.y),
-        Scalar(0, 255, 0));
     
-    atanVal *= -1;
+    if (imgOut.channels() == 3)
+    {
+        cv::line(imgOut,
+            SecondPoint, CornerPoint,
+            Scalar(0, 255, 0));
 
-    cv::circle(imgOut,
-        vertices[nMid],50,
-        Scalar(0, 0, 255));
+        cv::line(imgOut,
+            Point2f(SecondPoint.x, CornerPoint.y), Point2f(CornerPoint.x, CornerPoint.y),
+            Scalar(0, 255, 0));
+
+        cv::circle(imgOut,
+            vertices[nMid], 50,
+            Scalar(0, 0, 255));
+    }
+    else if (imgOut.channels() == 4)
+    {
+        cv::line(imgOut,
+            SecondPoint, CornerPoint,
+            Scalar(0, 255, 0,255));
+
+        cv::line(imgOut,
+            Point2f(SecondPoint.x, CornerPoint.y), Point2f(CornerPoint.x, CornerPoint.y),
+            Scalar(0, 255, 0,255));
+
+        cv::circle(imgOut,
+            vertices[nMid], 50,
+            Scalar(0, 0, 255,255));
+    }
+    else if (imgOut.channels() == 1)
+    {
+        cv::line(imgOut,
+            SecondPoint, CornerPoint,
+            Scalar(150, 150, 150, 150));
+
+        cv::line(imgOut,
+            Point2f(SecondPoint.x, CornerPoint.y), Point2f(CornerPoint.x, CornerPoint.y),
+            Scalar(150, 150, 150, 150));
+
+        cv::circle(imgOut,
+            vertices[nMid], 50,
+            Scalar(100, 100, 100, 100));
+
+    }
+
+
+    atanVal *= -1;
 
     fAngleOutput = atanVal;
 
