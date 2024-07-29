@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ 產生的 Include 檔案。
-// 由 AOILib_Corner_DLL.rc 使用
+// 由 AOILib_ChipCorner_DLL.rc 使用
 //
 
 // Next default values for new objects

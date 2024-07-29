@@ -18,4 +18,4 @@ typedef struct
 	float Parameters[20];
 }paramChipCorner;
 
-void GetChipCorner(Mat src, paramChipCorner Param, Point& CornerPoint, int& notFoundReason,Mat& ResultImg);
+void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& CornerPoint, float& fAngleOutput, Mat& imgOut);

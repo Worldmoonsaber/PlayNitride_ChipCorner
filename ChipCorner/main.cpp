@@ -3,9 +3,9 @@
 
 int main()
 {
-    Mat img,result, grayimg;
-    img = imread("C:\\Users\\Chien\\Documents\\GitHub\\PlayNitride_ChipCorner\\3.bmp");
-
+    Mat img,imgOut;
+    img = imread("C:\\Git\\Code\\ChipCorner\\1.bmp");
+   
     paramChipCorner pm;
        
     pm.Parameters[0] = 300;//Chip longSide
@@ -18,13 +18,18 @@ int main()
 
     Point ptCorner;
     int notFoundReason = 0;
-
+    float angle = 0;
 
     auto t_start = std::chrono::high_resolution_clock::now();
+
+    //void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& CornerPoint, float& fAngleOutput);
+    GetChipCorner(img, pm, notFoundReason, ptCorner, angle, imgOut);
+
+
 //    GetChipCorner(img, pm, ptCorner, notFoundReason, result);
     /*Parm 2. auto-thres filter */
 
-
+    /*
     float ra= pm.Parameters[0];
     float ra_Min= pm.Parameters[1];
     float ra_Max= pm.Parameters[2];
@@ -159,28 +164,40 @@ int main()
         vertices[x_sample_level], vertices[nMid],
         Scalar(255, 255, 255));
 
-    cv::line(grayimg,
-        vertices[x_sample_level], Point2f(vertices[nMid].x,vertices[x_sample_level].y),
-        Scalar(255, 255, 255));
+    if (vertices[nMid].y > vertices[x_sample_level].y)
+    {
+        cv::line(grayimg,
+            Point2f(vertices[x_sample_level].x, vertices[x_sample_level].y), Point2f(vertices[nMid].x, vertices[x_sample_level].y),
+            Scalar(255, 255, 255));
+    }
+    else
+    {
+        cv::line(grayimg,
+            Point2f(vertices[x_sample_level].x, vertices[nMid].y), Point2f(vertices[nMid].x, vertices[nMid].y),
+            Scalar(255, 255, 255));
 
+    }
     float fAngle=0;
 
     float xx = vertices[nMid].x - vertices[x_sample_level].x;
     float yy = vertices[nMid].y - vertices[x_sample_level].y;
 
     float atanVal = atan(yy / xx) * 180.0 / CV_PI;
+    
+    atanVal *= -1;
+    //定義
+    //順時針為負
+    //逆時針為正
 
-    if (vertices[nMid].x > vertices[x_sample_level].x)
-        atanVal *= -1;
 
     float angleOut = atanVal;
-
+    */
     auto t_end = std::chrono::high_resolution_clock::now();
     auto elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
     std::cout << "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*" << endl;
-    std::cout << "Corner Point :: " << fCornerPt << endl;
+    std::cout << "Corner Point :: " << ptCorner << endl;
 
-    std::cout << "Angle :: " << angleOut << endl;
+    std::cout << "Angle :: " << angle << endl;
 
     std::cout << "spend time :: " << elapsed_time_ms << endl;
     std::cout << "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*" << endl;
