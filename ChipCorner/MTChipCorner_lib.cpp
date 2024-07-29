@@ -142,30 +142,22 @@ void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& C
 
     float atanVal = atan(yy / xx) * 180.0 / CV_PI;
 
-    atanVal *= -1;
     //定義
     //順時針為負
     //逆時針為正
 
+    Point SecondPoint = vertices[x_sample_level];
 
     imgOut = src.clone();
     cv::line(imgOut,
-        vertices[x_sample_level], vertices[nMid],
+        SecondPoint, CornerPoint,
         Scalar(0, 255, 0));
 
-    if (vertices[nMid].y > vertices[x_sample_level].y)
-    {
-        cv::line(imgOut,
-            Point2f(vertices[x_sample_level].x, vertices[x_sample_level].y), Point2f(vertices[nMid].x, vertices[x_sample_level].y),
-            Scalar(0, 255, 0));
-    }
-    else
-    {
-        cv::line(imgOut,
-            Point2f(vertices[x_sample_level].x, vertices[nMid].y), Point2f(vertices[nMid].x, vertices[nMid].y),
-            Scalar(0, 255, 0));
-
-    }
+    cv::line(imgOut,
+        Point2f(SecondPoint.x, CornerPoint.y), Point2f(CornerPoint.x, CornerPoint.y),
+        Scalar(0, 255, 0));
+    
+    atanVal *= -1;
 
     cv::circle(imgOut,
         vertices[nMid],50,
