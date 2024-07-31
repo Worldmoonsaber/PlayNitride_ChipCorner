@@ -145,6 +145,8 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>D:\opencv\build\x64\vc15\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_world460.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <StackReserveSize>2000000000</StackReserveSize>
+      <StackCommitSize>2000000000</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
