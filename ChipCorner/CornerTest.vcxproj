@@ -141,7 +141,8 @@
       <HeapCommitSize>
       </HeapCommitSize>
       <StackReserveSize>20000000000</StackReserveSize>
-      <StackCommitSize>20000000000</StackCommitSize>
+      <StackCommitSize>
+      </StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

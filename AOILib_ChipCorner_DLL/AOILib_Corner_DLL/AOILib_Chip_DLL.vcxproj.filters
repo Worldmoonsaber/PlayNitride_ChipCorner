@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AOILib_MTUChipCorner.h">
+    <ClInclude Include="AOILib_MTUchipcorner_V1.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">

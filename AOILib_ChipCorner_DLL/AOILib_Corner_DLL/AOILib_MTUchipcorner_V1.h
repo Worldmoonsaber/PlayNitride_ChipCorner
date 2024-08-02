@@ -12,6 +12,11 @@ typedef struct
 	int rows; //1500    
 }ImgP;
 
+typedef struct
+{
+	float Parameters[20];
+}paramChipCorner;
+
 __declspec(dllexport) void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCorner Param,
 	unsigned int* imageOUT, float boolResult[], float fPosX[], float fPosY[], float fAngle[]);
 

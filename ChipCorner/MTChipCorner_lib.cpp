@@ -10,7 +10,7 @@
 /// <param name="CornerPoint"></param>
 /// <param name="fAngleOutput"></param>
 /// <param name="imgOut"></param>
-void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& CornerPoint, float& fAngleOutput, Mat& imgOut)
+void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint, float& fAngleOutput, Mat& imgOut)
 {
     if (src.empty())
     {
@@ -19,24 +19,31 @@ void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& C
     }
     CornerPoint = Point(0, 0);
     Mat grayimg,result;
-    Mat equalImg = Mat(src.size(), CV_8UC1);
-    Mat element = getStructuringElement(MORPH_RECT, Size(10, 10));
+    Mat element = getStructuringElement(MORPH_RECT, Size(30, 30));
     notFoundReason = 0;
 
-    float ra = Param.Parameters[0];
-    float ra_Min = Param.Parameters[1];
-    float ra_Max = Param.Parameters[2];
+    float ra = Param.Parameters[2];
+    float ra_Min = Param.Parameters[3];
+    float ra_Max = Param.Parameters[4];
 
-    float rb = Param.Parameters[3];
-    float rb_Min = Param.Parameters[4];
-    float rb_Max = Param.Parameters[5];
+    float rb = Param.Parameters[5];
+    float rb_Min = Param.Parameters[6];
+    float rb_Max = Param.Parameters[7];
 
-    float fChip_Pitch = Param.Parameters[6];
+    float fChip_ExclusiveDistance = Param.Parameters[8];
 
-    vector<vector<Point>> _debugArea;
 
     vector <vector<Point>>contours;
+
     int thresfilter = THRESH_BINARY;
+
+    if (Param.Parameters[0] == 0)
+        thresfilter = THRESH_BINARY_INV;
+    else if (Param.Parameters[0] == 1)
+        thresfilter = THRESH_BINARY;
+
+    int thresholdVal = Param.Parameters[1];
+
 
     if (src.channels() == 3)
         cvtColor(src, grayimg, COLOR_RGB2GRAY);
@@ -45,35 +52,62 @@ void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& C
     else
         grayimg = src;
 
-    equalizeHist(grayimg, equalImg);
-    cv::morphologyEx(equalImg, equalImg, MORPH_OPEN, element, Point(-1, -1));
-    threshold(equalImg, result, 240, 255, THRESH_BINARY);
+    threshold(grayimg, result, thresholdVal, 255, thresfilter);
 
-    float maxArea = ra * rb * max(ra_Max, rb_Max);
-    float minArea = ra * rb * min(ra_Min, rb_Min);
+    float maxArea = ra * rb * ra_Max*rb_Max;
+    float minArea = ra * rb *ra_Min*rb_Min;
     vector<BlobInfo> vChips = RegionPartition(result, maxArea, minArea);
     vector<BlobInfo> vChips_Comfirmed;
     vector<BlobInfo> vChips_NotSure;
 
-    float _compactness_ideal = (2 + ra / rb + rb / ra) / CV_PI;
+    float _angle = 0;
+    float _rectangularity = 0;
+    float _bulkiness = 0;
+    float _AspectRatio = 0;
+   // vChips_Comfirmed = vChips;
 
     for (int i = 0; i < vChips.size(); i++)
     {
-        if (vChips[i].Rectangularity() > 0.7)
-            vChips_Comfirmed.push_back(vChips[i]);
-        else if (vChips[i].Compactness() < _compactness_ideal * 1.2 && vChips[i].Compactness() > 0.8 * _compactness_ideal)
-            vChips_Comfirmed.push_back(vChips[i]);// 通常會找到 Chip 有所滑動的情況
+        _rectangularity += vChips[i].Rectangularity();
+        _bulkiness+= vChips[i].Bulkiness();
+        _AspectRatio += vChips[i].AspectRatio();
     }
+    _rectangularity /= vChips.size();
+    _bulkiness/= vChips.size();
+    _AspectRatio/= vChips.size();
+    
+    for (int i = 0; i < vChips.size(); i++)
+    {
 
-    if (vChips_Comfirmed.size() < 3)
+        if (vChips[i].AspectRatio() > 1.5 * _AspectRatio || vChips[i].AspectRatio() < 0.8 * _AspectRatio)
+            continue;
+
+        if (abs(vChips[i].Bulkiness()- _bulkiness)>1)
+            continue;
+
+        if (abs(vChips[i].Rectangularity() - _rectangularity) > 0.1)
+            continue;
+
+    
+        vChips_Comfirmed.push_back(vChips[i]);// 通常會找到 Chip 有所滑動的情況
+    }
+    
+    //Mat debug=Mat(src.size(),CV_8UC1);
+
+    //for (int i = 0; i < vChips_Comfirmed.size(); i++)
+    //{
+    //    for(int j=0;j< vChips_Comfirmed[i].Points().size();j++)
+    //        debug.at<uchar>(vChips_Comfirmed[i].Points()[j].y, vChips_Comfirmed[i].Points()[j].x)=255;
+    //}
+
+    if (vChips_Comfirmed.size() < 5)
     {
         notFoundReason = 1;
         grayimg.release();
         result.release();
-        equalImg.release();
         element.release();
 
-        throw "CAN NOT FIND ENOUGH Chips On Image";
+        throw "Can Not Find Enough Chips On Image. At least 5 Chips in Frame ...";
     }
 
     // 測試
@@ -99,22 +133,21 @@ void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& C
 
     for (int i = 0; i < 4; ++i)
     {
-        float cur_dist = (x_c - vertices[i].x) * (x_c - vertices[i].x) + (y_c - vertices[i].y) * (y_c - vertices[i].y);
+        float cur_dist = norm(Point2f(x_c, y_c) -(Point2f) vertices[i]);
 
         if (cur_dist < dist)
         {
             dist = cur_dist;
             nMid = i;
         }
-
     }
 
     CornerPoint = vertices[nMid];
 
-    if (CornerPoint.x > fChip_Pitch &&
-        CornerPoint.x < src.cols - fChip_Pitch &&
-        CornerPoint.y> fChip_Pitch &&
-        CornerPoint.y < src.rows - fChip_Pitch
+    if (CornerPoint.x > fChip_ExclusiveDistance &&
+        CornerPoint.x < src.cols - fChip_ExclusiveDistance &&
+        CornerPoint.y> fChip_ExclusiveDistance &&
+        CornerPoint.y < src.rows - fChip_ExclusiveDistance
         )
     {
         //OK 在適當範圍
@@ -124,7 +157,6 @@ void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& C
         notFoundReason = 2;
         grayimg.release();
         result.release();
-        equalImg.release();
         element.release();
 
         throw "No Obivious Chip Corner Please Move The Panel";
@@ -213,6 +245,5 @@ void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& C
 
     grayimg.release();
     result.release();
-    equalImg.release();
     element.release();
 }

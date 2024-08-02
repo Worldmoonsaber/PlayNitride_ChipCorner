@@ -4,18 +4,22 @@
 int main()
 {
     Mat img,imgOut;
-    img = imread("C:\\Git\\Code\\ChipCorner\\4.bmp");
+    img = imread("C:\\Git\\Code\\ChipCorner\\ChipCornerTest.bmp");
     cvtColor(img, img, COLOR_RGB2RGBA);
 
-    paramChipCorner pm;
-       
-    pm.Parameters[0] = 300;//Chip longSide
-    pm.Parameters[1] = 0.5;//Chip longSide Min Tolerance
-    pm.Parameters[2] = 2;  //Chip longSide Max Tolerance
-    pm.Parameters[3] = 200;//Chip ShortSide
-    pm.Parameters[4] = 0.5;//Chip ShortSide Min Tolerance
-    pm.Parameters[5] = 2;//Chip ShortSide Max Tolerance
-    pm.Parameters[6] = 1000;// Chip Pitch
+    param pm;
+
+
+    pm.Parameters[0] = 1;//SelectMode  0:DARK 1:Light
+    pm.Parameters[1] = 220;//Threshold Value 0~255
+
+    pm.Parameters[2] = 30;//Chip longSide
+    pm.Parameters[3] = 0.7;//Chip longSide Min Tolerance
+    pm.Parameters[4] = 1.5;  //Chip longSide Max Tolerance
+    pm.Parameters[5] = 15;//Chip ShortSide
+    pm.Parameters[6] = 0.7;//Chip ShortSide Min Tolerance
+    pm.Parameters[7] = 1.5;//Chip ShortSide Max Tolerance
+    pm.Parameters[8] = 100;// Chip Pitch
 
     Point ptCorner;
     int notFoundReason = 0;

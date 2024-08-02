@@ -16,6 +16,7 @@ using namespace std;
 typedef struct
 {
 	float Parameters[20];
-}paramChipCorner;
+}param;
 
-void GetChipCorner(Mat src, paramChipCorner Param, int& notFoundReason, Point& CornerPoint, float& fAngleOutput, Mat& imgOut);
+
+void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint, float& fAngleOutput, Mat& imgOut);

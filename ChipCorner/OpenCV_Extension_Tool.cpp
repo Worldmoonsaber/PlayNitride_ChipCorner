@@ -1,6 +1,13 @@
 
 #include "OpenCV_Extension_Tool.h"
 
+#include <ppl.h>
+#include <array>
+#include <sstream>
+#include <iostream>
+
+using namespace concurrency;
+
 /// <summary>
 /// 
 /// </summary>
@@ -104,6 +111,9 @@ vector<BlobInfo> RegionPartition(Mat ImgBinary,int maxArea, int minArea)
 					continue;
 				}
 
+				if (vContour.size() == 0)
+					continue;
+
 				BlobInfo regionInfo = BlobInfo(vArea, vContour);
 
 				RegionPaint(ImgTag, vArea, 0);
@@ -118,6 +128,88 @@ vector<BlobInfo> RegionPartition(Mat ImgBinary,int maxArea, int minArea)
 	ImgBinary.release();
 	return lst;
 
+}
+
+
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="ImgBinary">必須輸入二值化影像</param>
+/// <param name="filter">預先過濾條件之後想到會陸續增加</param>
+/// <returns></returns>
+vector<BlobInfo> RegionPartition(Mat ImgBinary, BlobFilter filter)
+{
+
+	float maxArea = INT_MAX-2;
+	float minArea = -1;
+
+	bool isEnable = filter.IsEnableArea();
+	if (filter.IsEnableArea())
+	{
+		maxArea = filter.MaxArea();
+		minArea = filter.MinArea();
+	}
+
+	float Xmin = 0;
+	float Xmax = ImgBinary.cols;
+
+	if (filter.IsEnableXbound())
+	{
+		Xmax = filter.MaxXbound();
+		Xmin = filter.MinXbound();
+	}
+
+	float Ymin = 0;
+	float Ymax = ImgBinary.rows;
+
+	if (filter.IsEnableYbound())
+	{
+		Ymax = filter.MaxYbound();
+		Ymin = filter.MinYbound();
+	}
+
+	vector<BlobInfo> lst;
+	uchar tagOverSize = 10;
+
+	Mat ImgTag = ImgBinary.clone();
+
+	for (int i = Xmin; i < Xmax; i++)
+		for (int j = Ymin; j < Ymax; j++)
+		{
+			int val = ImgTag.at<uchar>(j, i);
+			bool isOverSizeExtension = false;
+
+			if (val == 255)
+			{
+				vector<Point> vArea;
+				vector<Point> vContour;
+				RegionFloodFill(ImgTag, i, j, vArea, vContour, maxArea, isOverSizeExtension);
+
+				if (vArea.size() > maxArea || isOverSizeExtension)
+				{
+					RegionPaint(ImgTag, vArea, tagOverSize);
+					continue;
+				}
+				else if (vArea.size() <= minArea)
+				{
+					RegionPaint(ImgTag, vArea, 0);
+					continue;
+				}
+
+				BlobInfo regionInfo = BlobInfo(vArea, vContour);
+
+				RegionPaint(ImgTag, vArea, 0);
+
+				lst.push_back(regionInfo);
+
+			}
+
+		}
+
+	ImgTag.release();
+	ImgBinary.release();
+	return lst;
 }
 
 BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
@@ -160,10 +252,7 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 
 	for (int j = 0; j < vContour.size(); j++)
 	{
-		float xx = vContour[j].x - _center.x;
-		float yy = vContour[j].y - _center.y;
-
-		float len = sqrt((xx * xx + yy * yy));
+		float len =norm(_center - (Point2f)vContour[j]);
 
 		if (len > max_len)
 			max_len = len;
@@ -172,7 +261,7 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 			min_len = len;
 	}
 
-	_circularity = min_len / max_len;
+	_circularity = _area / (max_len* max_len*CV_PI);
 
 	if (vContour.size() == 0)
 		return;
@@ -206,7 +295,6 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 		_AspectRatio = _minRectWidth / _minRectHeight;
 		_Rb = _minRectHeight;
 		_Ra = _minRectWidth;
-
 	}
 
 	_bulkiness = CV_PI * _Ra * _Rb / _area*1.0;
@@ -219,7 +307,6 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 
 	_rectangularity = abs(_rectangularity);
 
-
 	_compactness = (1.0 * _contour.size()) * (1.0 * _contour.size()) / (4.0 * CV_PI * _area);
 
 	// _compactness 公式
@@ -230,6 +317,40 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 	//  可以推算出 理論上 目標物的 _compactness 數值 在用此數值進行過濾
 	//
 	//
+
+	// _roundness;
+	// 
+
+	if (_contour.size() > 0)
+	{
+		float distance=0;
+
+		for (int i = 0; i < _contour.size(); i++)
+		{
+			float d = norm(_center - (Point2f)_contour[i]);
+			distance += d;
+		}
+		distance /= _contour.size();
+
+		float sigma;
+
+		float diff = 0;
+
+		for (int i = 0; i < _contour.size(); i++)
+		{
+			float d = norm(_center - (Point2f)_contour[i]);
+			diff+=(d - distance)* (d - distance);
+		}
+
+		diff = sqrt(diff);
+
+		sigma = diff / sqrt(_contour.size() * 1.0);
+		_roundness = 1 - sigma / distance;
+		_sides = (float)1.411 * pow((distance / sigma), (0.4724));
+	}
+
+
+	// Moments openCV已經存在實作 沒有必要加入此類特徵 有需要在呼叫即可
 }
 
 void BlobInfo::Release()
@@ -335,3 +456,182 @@ float BlobInfo::Compactness()
 {
 	return _compactness;
 }
+
+float BlobInfo::Roundness()
+{
+	return _roundness;
+}
+
+float BlobInfo::Sides()
+{
+	return _sides;
+}
+
+BlobFilter::BlobFilter()
+{
+	FilterCondition condition1;
+	condition1.FeatureName = "area";
+	condition1.Enable = false;
+	condition1.MaximumValue = INT16_MAX;
+	condition1.MinimumValue = INT16_MIN;
+
+	FilterCondition condition2;
+	condition2.FeatureName = "xBound";
+	condition2.Enable = false;
+	condition2.MaximumValue = INT16_MAX;
+	condition2.MinimumValue = INT16_MIN;
+
+	FilterCondition condition3;
+	condition3.FeatureName = "yBound";
+	condition3.Enable = false;
+	condition3.MaximumValue = INT16_MAX;
+	condition3.MinimumValue = INT16_MIN;
+
+	FilterCondition condition4;
+	condition4.FeatureName = "grayLevel";
+	condition4.Enable = false;
+	condition4.MaximumValue = 255;
+	condition4.MinimumValue = 0;
+
+
+
+	map.insert(std::pair<string, FilterCondition>(condition1.FeatureName, condition1));
+	map.insert(std::pair<string, FilterCondition>(condition2.FeatureName, condition2));
+	map.insert(std::pair<string, FilterCondition>(condition3.FeatureName, condition3));
+}
+
+BlobFilter::~BlobFilter()
+{
+	map.clear();
+}
+
+void BlobFilter::_setMaxPokaYoke(string title, float value)
+{
+	if (map[title].MinimumValue < value)
+		map[title].MaximumValue = value;
+	else
+		map[title].MaximumValue = map[title].MinimumValue;
+}
+
+void BlobFilter::_setMinPokaYoke(string title, float value)
+{
+	if (map[title].MaximumValue > value)
+		map[title].MinimumValue = value;
+	else
+		map[title].MinimumValue = map[title].MaximumValue;
+}
+
+
+
+
+bool BlobFilter::IsEnableArea()
+{
+	return map["area"].Enable;
+}
+
+float BlobFilter::MaxArea()
+{
+	return map["area"].MaximumValue;
+}
+
+float BlobFilter::MinArea()
+{
+	return map["area"].MinimumValue;
+}
+
+bool BlobFilter::IsEnableXbound()
+{
+	return map["xBound"].Enable;
+}
+
+float BlobFilter::MaxXbound()
+{
+	return map["xBound"].MaximumValue;
+}
+
+float BlobFilter::MinXbound()
+{
+	return map["xBound"].MinimumValue;
+}
+
+bool BlobFilter::IsEnableYbound()
+{
+	return map["yBound"].Enable;
+}
+
+float BlobFilter::MaxYbound()
+{
+	return map["yBound"].MaximumValue;
+}
+
+float BlobFilter::MinYbound()
+{
+	return map["yBound"].MinimumValue;
+}
+
+void BlobFilter::SetEnableArea(bool enable)
+{
+	map["area"].Enable = enable;
+}
+
+void BlobFilter::SetMaxArea(float value)
+{
+	_setMaxPokaYoke("area", value);
+}
+
+void BlobFilter::SetMinArea(float value)
+{
+	_setMinPokaYoke("area", value);
+}
+
+void BlobFilter::SetEnableXbound(bool enable)
+{
+	map["xBound"].Enable = enable;
+}
+
+void BlobFilter::SetMaxXbound(float value)
+{
+	_setMaxPokaYoke("xBound", value);
+}
+
+void BlobFilter::SetMinXbound(float value)
+{
+	_setMinPokaYoke("xBound", value);
+}
+
+void BlobFilter::SetEnableYbound(bool enable)
+{
+	map["yBound"].Enable = enable;
+}
+
+void BlobFilter::SetMaxYbound(float value)
+{
+	_setMaxPokaYoke("yBound", value);
+}
+
+void BlobFilter::SetMinYbound(float value)
+{
+	_setMinPokaYoke("yBound", value);
+}
+
+void BlobFilter::SetEnableGrayLevel(bool enable)
+{
+	map["grayLevel"].Enable = enable;
+}
+
+void BlobFilter::SetMaxGrayLevel(float value)
+{
+	if (value >= 0 && value <= 255 && value > map["grayLevel"].MinimumValue)
+		map["grayLevel"].MaximumValue = (int)value;
+	else
+		map["grayLevel"].MaximumValue = map["grayLevel"].MinimumValue;
+}
+
+void BlobFilter::SetMinGrayLevel(float value)
+{
+	if (value >= 0 && value <= 255 && value < map["grayLevel"].MaximumValue)
+		map["grayLevel"].MinimumValue = (int)value;
+	else
+		map["grayLevel"].MinimumValue = map["grayLevel"].MaximumValue;
+}
+

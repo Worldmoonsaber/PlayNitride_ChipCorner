@@ -13,6 +13,15 @@
 using namespace cv;
 using namespace std;
 
+
+struct FilterCondition
+{
+    string FeatureName;
+    float  MaximumValue;
+    float  MinimumValue;
+    bool Enable;
+};
+
 void RegionFloodFill(Mat& ImgBinary, int x, int y, vector<Point>& vectorPoint, vector<Point>& vContour,int maxArea, bool& isOverSizeExtension);
 
 class BlobInfo
@@ -73,6 +82,15 @@ public:
     /// </summary>
     /// <returns></returns>
     float Compactness();
+
+    /// <summary>
+    /// 與 Circularity 有定義上的差別 這個屬性更適合偵測 中空圓環的圓環 圓環的 Roundness趨近於1 Circularity 0.1 左右
+    /// </summary>
+    /// <returns></returns>
+    float Roundness();
+
+    float Sides();
+
 private:
 
     int _area = -1;
@@ -96,6 +114,53 @@ private:
     float _Rb = -1;
     float _bulkiness = -1;
     float _compactness = -1;
+    float _roundness = -1;
+    float _sides = -1;
+};
+
+class BlobFilter
+{
+public:
+    BlobFilter();
+    ~BlobFilter();
+
+    map<string, FilterCondition> DictionaryFilterCondition;
+
+    bool IsEnableArea();
+    float MaxArea();
+    float MinArea();
+
+    bool IsEnableXbound();
+    float MaxXbound();
+    float MinXbound();
+
+    bool IsEnableYbound();
+    float MaxYbound();
+    float MinYbound();
+
+
+    void SetEnableArea(bool enable);
+    void SetMaxArea(float value);
+    void SetMinArea(float value);
+
+    void SetEnableXbound(bool enable);
+    void SetMaxXbound(float value);
+    void SetMinXbound(float value);
+
+    void SetEnableYbound(bool enable);
+    void SetMaxYbound(float value);
+    void SetMinYbound(float value);
+
+    void SetEnableGrayLevel(bool enable);
+    void SetMaxGrayLevel(float value);
+    void SetMinGrayLevel(float value);
+
+
+private:
+    map<string, FilterCondition> map;
+
+    void _setMaxPokaYoke(string title, float value);
+    void _setMinPokaYoke(string title, float value);
 };
 
 /// <summary>
@@ -105,3 +170,8 @@ private:
 /// <param name="maxArea">保護措施 如果不需要這麼大的Region 可以在這邊先行用條件濾掉 避免記憶體堆積問題產生</param>
 /// <returns></returns>
 vector<BlobInfo> RegionPartition(Mat ImgBinary,int maxArea= INT_MAX-2,int minArea=-1);
+
+vector<BlobInfo> RegionPartition(Mat ImgBinary, BlobFilter filter);
+
+
+

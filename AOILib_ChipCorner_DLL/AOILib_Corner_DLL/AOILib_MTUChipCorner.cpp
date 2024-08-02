@@ -1,5 +1,5 @@
 ﻿
-#include "AOILib_MTUChipCorner.h"
+#include "AOILib_MTUchipcorner_V1.h"
 #include<opencv2/opencv.hpp>
 #include<opencv2/highgui/highgui.hpp>
 #include<opencv2/imgproc/imgproc.hpp> //mophorlogical operation
@@ -23,6 +23,10 @@ void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCor
 	int notFoundReason = 0;
 	float angle = 0;
 
+	param pm;
+
+	for(int i=0;i< sizeof(Param.Parameters)/sizeof(Param.Parameters[0]); i++)
+		pm.Parameters[i] = Param.Parameters[i];
 
 	// P.S: Laview 輸入影像格式為 RGBA
 	Mat image_input(imageParm.rows, imageParm.cols, CV_8UC4, &imageIN[0]); // THIS IS THE INPUT IMAGE, POINTER TO DATA		
@@ -44,7 +48,7 @@ void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCor
 
 	if (notFoundReason == 0) //&& imageParm.Outputmode == 0
 	{
-		GetChipCorner(image_input, Param, notFoundReason, ptCorner, angle, image_output);
+		GetChipCorner(image_input, pm, notFoundReason, ptCorner, angle, image_output);
 	}
 
 	image_input.release();

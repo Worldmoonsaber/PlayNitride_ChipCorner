@@ -146,13 +146,14 @@
       <AdditionalLibraryDirectories>D:\opencv\build\x64\vc15\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_world460.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <StackReserveSize>2000000000</StackReserveSize>
-      <StackCommitSize>2000000000</StackCommitSize>
+      <StackCommitSize>
+      </StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ChipCorner\MTChipCorner_lib.h" />
     <ClInclude Include="..\..\ChipCorner\OpenCV_Extension_Tool.h" />
-    <ClInclude Include="AOILib_MTUChipCorner.h" />
+    <ClInclude Include="AOILib_MTUchipcorner_V1.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
