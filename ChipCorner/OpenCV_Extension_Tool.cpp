@@ -1,13 +1,6 @@
 
 #include "OpenCV_Extension_Tool.h"
 
-#include <ppl.h>
-#include <array>
-#include <sstream>
-#include <iostream>
-
-using namespace concurrency;
-
 /// <summary>
 /// 
 /// </summary>

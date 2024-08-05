@@ -1,11 +1,5 @@
 ﻿
 #include "AOILib_MTUchipcorner_V1.h"
-#include<opencv2/opencv.hpp>
-#include<opencv2/highgui/highgui.hpp>
-#include<opencv2/imgproc/imgproc.hpp> //mophorlogical operation
-#include<opencv2/core.hpp>
-#include <iostream>
-#include <numeric>
 
 using namespace cv;
 using namespace std;
@@ -31,6 +25,7 @@ void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCor
 	// P.S: Laview 輸入影像格式為 RGBA
 	Mat image_input(imageParm.rows, imageParm.cols, CV_8UC4, &imageIN[0]); // THIS IS THE INPUT IMAGE, POINTER TO DATA		
 	Mat image_output(imageParm.rows, imageParm.cols, CV_8UC4, &imageOUT[0]);
+	Mat image_output_Processing;//----用於作業 因為在演算法流程中可能會改到指標導致 imageOUT 沒有變化
 
 	try
 	{
@@ -46,11 +41,12 @@ void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCor
 		std::cout << "check catch state:: " << notFoundReason << endl;
 	}//catch loop
 
-	if (notFoundReason == 0) //&& imageParm.Outputmode == 0
+	if (notFoundReason == 0)
 	{
-		GetChipCorner(image_input, pm, notFoundReason, ptCorner, angle, image_output);
+		GetChipCorner(image_input, pm, notFoundReason, ptCorner, angle, image_output_Processing);
 	}
-
+	image_output_Processing.copyTo(image_output);
+	image_output_Processing.release();
 	image_input.release();
 	std::cout << "check img state:: " << notFoundReason << endl;
 	std::cout << "check center is ::" << ptCorner << endl;
@@ -58,7 +54,7 @@ void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP imageParm, paramChipCor
 
 	/*  :::::::OUTPUT area:::::::  */
 	fPosX[0] = ptCorner.x;
-	fPosX[0] = ptCorner.y;
+	fPosY[0] = ptCorner.y;
 	fAngle[0] = angle;
 	boolResult[0] = notFoundReason;
 

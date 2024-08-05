@@ -4,7 +4,7 @@
 int main()
 {
     Mat img,imgOut;
-    img = imread("C:\\Git\\Code\\ChipCorner\\ChipCornerTest.bmp");
+    img = imread("ChipCornerTest.bmp");
     cvtColor(img, img, COLOR_RGB2RGBA);
 
     param pm;
@@ -38,7 +38,13 @@ int main()
 
     std::cout << "spend time :: " << elapsed_time_ms << endl;
     std::cout << "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*" << endl;
+    Mat imgResize;
+    resize(imgOut, imgResize, Size(500, 500),0,0,INTER_LINEAR);
+
+    imshow("Result", imgResize);
     cv:waitKey(0);
+
+    system("PAUSE");
 
     return 0;
 }

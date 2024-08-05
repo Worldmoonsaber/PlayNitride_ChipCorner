@@ -12,11 +12,7 @@
 /// <param name="imgOut"></param>
 void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint, float& fAngleOutput, Mat& imgOut)
 {
-    if (src.empty())
-    {
-        notFoundReason = 8;
-        throw "Cannot load image.";
-    }
+
     CornerPoint = Point(0, 0);
     Mat grayimg,result;
     Mat element = getStructuringElement(MORPH_RECT, Size(30, 30));
@@ -32,7 +28,6 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
     float fChip_ExclusiveDistance = Param.Parameters[8];
 
-
     vector <vector<Point>>contours;
 
     int thresfilter = THRESH_BINARY;
@@ -45,6 +40,7 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
     int thresholdVal = Param.Parameters[1];
 
 
+
     if (src.channels() == 3)
         cvtColor(src, grayimg, COLOR_RGB2GRAY);
     else if(src.channels() == 4)
@@ -54,6 +50,13 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
     threshold(grayimg, result, thresholdVal, 255, thresfilter);
 
+    imgOut = grayimg.clone();
+
+    if (src.channels() == 3)
+        cvtColor(imgOut, imgOut, COLOR_GRAY2RGB);
+    else if (src.channels() == 4)
+        cvtColor(imgOut, imgOut, COLOR_GRAY2RGBA);
+    
     float maxArea = ra * rb * ra_Max*rb_Max;
     float minArea = ra * rb *ra_Min*rb_Min;
     vector<BlobInfo> vChips = RegionPartition(result, maxArea, minArea);
@@ -64,7 +67,6 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
     float _rectangularity = 0;
     float _bulkiness = 0;
     float _AspectRatio = 0;
-   // vChips_Comfirmed = vChips;
 
     for (int i = 0; i < vChips.size(); i++)
     {
@@ -78,7 +80,6 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
     
     for (int i = 0; i < vChips.size(); i++)
     {
-
         if (vChips[i].AspectRatio() > 1.5 * _AspectRatio || vChips[i].AspectRatio() < 0.8 * _AspectRatio)
             continue;
 
@@ -88,18 +89,9 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
         if (abs(vChips[i].Rectangularity() - _rectangularity) > 0.1)
             continue;
 
-    
         vChips_Comfirmed.push_back(vChips[i]);// 通常會找到 Chip 有所滑動的情況
     }
     
-    //Mat debug=Mat(src.size(),CV_8UC1);
-
-    //for (int i = 0; i < vChips_Comfirmed.size(); i++)
-    //{
-    //    for(int j=0;j< vChips_Comfirmed[i].Points().size();j++)
-    //        debug.at<uchar>(vChips_Comfirmed[i].Points()[j].y, vChips_Comfirmed[i].Points()[j].x)=255;
-    //}
-
     if (vChips_Comfirmed.size() < 5)
     {
         notFoundReason = 1;
@@ -237,13 +229,21 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
     }
 
-
     atanVal *= -1;
 
     fAngleOutput = atanVal;
 
-
     grayimg.release();
     result.release();
     element.release();
+    notFoundReason = 9;
+
 }
+
+/*
+notFoundReason
+1:無法找到足夠的Chip識別Corner
+2:目前Chip無法被判定成Corner
+8:影像有問題
+9:檢測ok
+*/

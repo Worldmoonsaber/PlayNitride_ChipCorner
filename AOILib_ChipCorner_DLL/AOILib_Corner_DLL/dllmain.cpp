@@ -1,4 +1,4 @@
-﻿#include <wtypes.h>
+﻿#include <windows.h>
 // dllmain.cpp : 定義 DLL 應用程式的進入點。
 
 BOOL APIENTRY DllMain( HMODULE hModule,
