@@ -24,6 +24,12 @@ __declspec(dllexport) void MTUChipCorner_GetCorner(unsigned int* imageIN, ImgP i
 	unsigned int* imageOUT, float boolResult[], float fPosX[], float fPosY[], float fAngle[]);
 
 
-
+/*
+notFoundReason
+0:中間過渡
+1:無法找到足夠的Chip識別Corner,請確認是否有拍到Chip
+2:目前拍照位置 Chip分布 無法被判斷角點
+9:正常檢出角點並取得角度
+*/
 
 

@@ -4,16 +4,16 @@
 int main()
 {
     Mat img,imgOut;
-    img = imread("ChipCornerTest.bmp");
+    img = imread("C:\\Git\\Code\\ChipCorner\\SampleImage\\0806-9.bmp");
     cvtColor(img, img, COLOR_RGB2RGBA);
 
     param pm;
 
 
     pm.Parameters[0] = 1;//SelectMode  0:DARK 1:Light
-    pm.Parameters[1] = 220;//Threshold Value 0~255
+    pm.Parameters[1] = 30;//Threshold Value 0~255
 
-    pm.Parameters[2] = 30;//Chip longSide
+    pm.Parameters[2] = 24;//Chip longSide
     pm.Parameters[3] = 0.7;//Chip longSide Min Tolerance
     pm.Parameters[4] = 1.5;  //Chip longSide Max Tolerance
     pm.Parameters[5] = 15;//Chip ShortSide
@@ -27,7 +27,17 @@ int main()
 
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    GetChipCorner(img, pm, notFoundReason, ptCorner, angle, imgOut);
+    try
+    {
+        GetChipCorner(img, pm, notFoundReason, ptCorner, angle, imgOut);
+    }
+    catch (Exception ex)
+    {
+        std::cout << "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*" << endl;
+        std::cout << "Error :: " << notFoundReason << endl;
+    }
+
+
 
     auto t_end = std::chrono::high_resolution_clock::now();
     auto elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();

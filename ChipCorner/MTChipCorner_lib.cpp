@@ -99,7 +99,8 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
         result.release();
         element.release();
 
-        throw "Can Not Find Enough Chips On Image. At least 5 Chips in Frame ...";
+        return;
+        //throw "Can Not Find Enough Chips On Image. At least 5 Chips in Frame ...";
     }
 
     // 測試
@@ -151,7 +152,8 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
         result.release();
         element.release();
 
-        throw "No Obivious Chip Corner Please Move The Panel";
+        return;
+        //throw "No Obivious Chip Corner Please Move The Panel";
     }
 
     int x_sample_level = -1;
@@ -240,10 +242,4 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
 }
 
-/*
-notFoundReason
-1:無法找到足夠的Chip識別Corner
-2:目前Chip無法被判定成Corner
-8:影像有問題
-9:檢測ok
-*/
+
