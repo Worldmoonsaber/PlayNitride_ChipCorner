@@ -15,7 +15,6 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
     CornerPoint = Point(0, 0);
     Mat grayimg,result;
-    Mat element = getStructuringElement(MORPH_RECT, Size(30, 30));
     notFoundReason = 0;
 
     float ra = Param.Parameters[2];
@@ -49,6 +48,8 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
         grayimg = src;
 
     threshold(grayimg, result, thresholdVal, 255, thresfilter);
+
+
 
     imgOut = grayimg.clone();
 
@@ -92,12 +93,34 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
         vChips_Comfirmed.push_back(vChips[i]);// 通常會找到 Chip 有所滑動的情況
     }
     
-    if (vChips_Comfirmed.size() < 5)
+
+    if (vChips_Comfirmed.size() < 10)
     {
         notFoundReason = 1;
         grayimg.release();
         result.release();
-        element.release();
+
+        //-----標出 找到的Chip
+
+        for (int i = 0; i < vChips_Comfirmed.size(); i++)
+        {
+            if (imgOut.channels() == 3)
+            {
+                cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(0, 0, 255), 1, 50, 5);
+            }
+            else if (imgOut.channels() == 4)
+            {
+                cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(0, 0, 255,255), 1, 50, 5);
+            }
+            else if (imgOut.channels() == 1)
+            {
+                cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(150,150,150), 1, 50, 5);
+            }
+
+
+        }
+
+
 
         return;
         //throw "Can Not Find Enough Chips On Image. At least 5 Chips in Frame ...";
@@ -148,9 +171,51 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
     else
     {
         notFoundReason = 2;
+        
+        for (int i = 0; i < 3; i++)
+        {
+            if (imgOut.channels() == 3)
+            {
+                cv::line(imgOut,
+                    vertices[i], vertices[i+1],
+                    Scalar(0, 0, 255), 5);
+            }
+            else if (imgOut.channels() == 4)
+            {
+                cv::line(imgOut,
+                    vertices[i], vertices[i + 1],
+                    Scalar(0, 0, 255, 255), 5);
+            }
+            else if (imgOut.channels() == 1)
+            {
+                cv::line(imgOut,
+                    vertices[i], vertices[i + 1],
+                    Scalar(100, 100, 100, 100), 5);
+            }
+        }
+
+        if (imgOut.channels() == 3)
+        {
+            cv::line(imgOut,
+                vertices[0], vertices[3],
+                Scalar(0, 0, 255), 5);
+        }
+        else if (imgOut.channels() == 4)
+        {
+            cv::line(imgOut,
+                vertices[0], vertices[3],
+                Scalar(0, 0, 255, 255), 5);
+        }
+        else if (imgOut.channels() == 1)
+        {
+            cv::line(imgOut,
+                vertices[0], vertices[3],
+                Scalar(100, 100, 100, 100), 5);
+        }
+
+
         grayimg.release();
         result.release();
-        element.release();
 
         return;
         //throw "No Obivious Chip Corner Please Move The Panel";
@@ -164,6 +229,7 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
         if (i == nMid)
             continue;
 
+        
         float cur_dist = (vertices[nMid].y - vertices[i].y) * (vertices[nMid].x - vertices[i].y);
 
         if (cur_dist < dist)
@@ -191,43 +257,43 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
     {
         cv::line(imgOut,
             SecondPoint, CornerPoint,
-            Scalar(0, 255, 0));
+            Scalar(0, 255, 0), 5);
 
         cv::line(imgOut,
             Point2f(SecondPoint.x, CornerPoint.y), Point2f(CornerPoint.x, CornerPoint.y),
-            Scalar(0, 255, 0));
+            Scalar(0, 255, 0), 5);
 
         cv::circle(imgOut,
             vertices[nMid], 50,
-            Scalar(0, 0, 255));
+            Scalar(0, 0, 255),5);
     }
     else if (imgOut.channels() == 4)
     {
         cv::line(imgOut,
             SecondPoint, CornerPoint,
-            Scalar(0, 255, 0,255));
+            Scalar(0, 255, 0,255), 5);
 
         cv::line(imgOut,
             Point2f(SecondPoint.x, CornerPoint.y), Point2f(CornerPoint.x, CornerPoint.y),
-            Scalar(0, 255, 0,255));
+            Scalar(0, 255, 0,255), 5);
 
         cv::circle(imgOut,
             vertices[nMid], 50,
-            Scalar(0, 0, 255,255));
+            Scalar(0, 0, 255,255), 5);
     }
     else if (imgOut.channels() == 1)
     {
         cv::line(imgOut,
             SecondPoint, CornerPoint,
-            Scalar(150, 150, 150, 150));
+            Scalar(150, 150, 150, 150), 5);
 
         cv::line(imgOut,
             Point2f(SecondPoint.x, CornerPoint.y), Point2f(CornerPoint.x, CornerPoint.y),
-            Scalar(150, 150, 150, 150));
+            Scalar(150, 150, 150, 150), 5);
 
         cv::circle(imgOut,
             vertices[nMid], 50,
-            Scalar(100, 100, 100, 100));
+            Scalar(100, 100, 100, 100), 5);
 
     }
 
@@ -237,7 +303,6 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
     grayimg.release();
     result.release();
-    element.release();
     notFoundReason = 9;
 
 }
