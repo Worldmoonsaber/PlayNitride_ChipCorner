@@ -8,7 +8,6 @@
 using namespace cv;
 using namespace std;
 
-
 struct FilterCondition
 {
     string FeatureName;
@@ -16,8 +15,6 @@ struct FilterCondition
     float  MinimumValue;
     bool Enable;
 };
-
-void RegionFloodFill(Mat& ImgBinary, int x, int y, vector<Point>& vectorPoint, vector<Point>& vContour,int maxArea, bool& isOverSizeExtension);
 
 class BlobInfo
 {
@@ -164,9 +161,22 @@ private:
 /// <param name="ImgBinary"></param>
 /// <param name="maxArea">保護措施 如果不需要這麼大的Region 可以在這邊先行用條件濾掉 避免記憶體堆積問題產生</param>
 /// <returns></returns>
-vector<BlobInfo> RegionPartition(Mat ImgBinary,int maxArea= INT_MAX-2,int minArea=-1);
-
+vector<BlobInfo> RegionPartition(Mat ImgBinary, int maxArea, int minArea);//; int maxArea = INT_MAX - 2, int minArea = -1);目前直接使用吃預設值好像會出Bug避免錯誤使用先包起來
+vector<BlobInfo> RegionPartition(Mat ImgBinary);
 vector<BlobInfo> RegionPartition(Mat ImgBinary, BlobFilter filter);
+
+/// <summary>
+/// 當Region數量極少時( 數量 < 500) 多緒對於速度提升沒有幫助,此時建議用這個方法
+/// </summary>
+/// <param name="ImgBinary"></param>
+/// <returns></returns>
+vector<BlobInfo> RegionPartitionNonMultiThread(Mat ImgBinary, int maxArea, int minArea);
+/// <summary>
+/// 當Region數量極少時( 數量 < 500) 多緒對於速度提升沒有幫助,此時建議用這個方法
+/// </summary>
+/// <param name="ImgBinary"></param>
+/// <returns></returns>
+vector<BlobInfo> RegionPartitionNonMultiThread(Mat ImgBinary);
 
 
 
