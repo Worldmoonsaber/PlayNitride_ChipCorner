@@ -22,7 +22,7 @@ int main()
         pm.Parameters[5] = 15;//Chip ShortSide
         pm.Parameters[6] = 0.7;//Chip ShortSide Min Tolerance
         pm.Parameters[7] = 1.5;//Chip ShortSide Max Tolerance
-        pm.Parameters[8] = 70;//Chip X Pitch
+        pm.Parameters[8] = -70;//Chip X Pitch
         pm.Parameters[9] = 70;//Chip Y Pitch
         pm.Parameters[10] = 500;// Edge Exclusion Distance
 

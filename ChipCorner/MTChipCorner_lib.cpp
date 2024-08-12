@@ -14,7 +14,7 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 {
 
     CornerPoint = Point(0, 0);
-    Mat grayimg, tmp_img,result;
+    Mat grayimg,result;
     notFoundReason = 0;
 
     float ra = Param.Parameters[2];
@@ -54,23 +54,30 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
     threshold(grayimg, result, thresholdVal, 255, thresfilter);
     imgOut = grayimg.clone();
 
-    Mat element = getStructuringElement(MORPH_RECT, Size(chip_x_pitch, chip_y_pitch));
-    morphologyEx(result, tmp_img, MORPH_CLOSE, element, Point(-1, -1), 1);
     //  理論上 Chip區域跟
 
 #pragma region 大面積標籤 &過濾 折衷辦法 未來實作到RegionPartition內部 來提升效率
-    vector<vector<Point>> countour;
-    cv::findContours(tmp_img, countour, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, Point());
 
-    vector<vector<Point>> BigRegionCountour;
+    if (chip_x_pitch * chip_y_pitch != 0)
+    {
+        Mat tmp_img;
 
-    for (int i = 0; i < countour.size(); i++)
-    {    
-        int _XmaxBound=-1, _YmaxBound = -1, _XminBound=INT16_MAX, _YminBound= INT16_MAX;
-    
-        bool isAddNewElement;
+        Mat element = getStructuringElement(MORPH_RECT, Size(chip_x_pitch, chip_y_pitch));
+        morphologyEx(result, tmp_img, MORPH_CLOSE, element, Point(-1, -1), 1);
 
-        for (int j = 0; j < countour[i].size(); j++)
+
+        vector<vector<Point>> countour;
+        cv::findContours(tmp_img, countour, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, Point());
+
+        vector<vector<Point>> BigRegionCountour;
+
+        for (int i = 0; i < countour.size(); i++)
+        {
+            int _XmaxBound = -1, _YmaxBound = -1, _XminBound = INT16_MAX, _YminBound = INT16_MAX;
+
+            bool isAddNewElement;
+
+            for (int j = 0; j < countour[i].size(); j++)
             {
                 if (countour[i][j].x > _XmaxBound)
                     _XmaxBound = countour[i][j].x;
@@ -93,13 +100,14 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
             }
 
-    }
-    tmp_img.release();
+        }
+        tmp_img.release();
 
-    tmp_img = cv::Mat::zeros(result.size(), CV_8UC1);
-    cv::fillPoly(tmp_img, BigRegionCountour, cv::Scalar(255));
-    result = result - tmp_img;
-    tmp_img.release();
+        tmp_img = cv::Mat::zeros(result.size(), CV_8UC1);
+        cv::fillPoly(tmp_img, BigRegionCountour, cv::Scalar(255));
+        result = result - tmp_img;
+        tmp_img.release();
+    }
 #pragma endregion
 
 
