@@ -14,7 +14,7 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 {
 
     CornerPoint = Point(0, 0);
-    Mat grayimg,result;
+    Mat grayimg, tmp_img,result;
     notFoundReason = 0;
 
     float ra = Param.Parameters[2];
@@ -25,7 +25,11 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
     float rb_Min = Param.Parameters[6];
     float rb_Max = Param.Parameters[7];
 
-    float fChip_ExclusiveDistance = Param.Parameters[8];
+
+    float chip_x_pitch = Param.Parameters[8];
+    float chip_y_pitch = Param.Parameters[9];
+
+    float fChip_ExclusiveDistance = Param.Parameters[10];
 
     vector <vector<Point>>contours;
 
@@ -48,10 +52,58 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
         grayimg = src;
 
     threshold(grayimg, result, thresholdVal, 255, thresfilter);
-
-
-
     imgOut = grayimg.clone();
+
+    Mat element = getStructuringElement(MORPH_RECT, Size(chip_x_pitch, chip_y_pitch));
+    morphologyEx(result, tmp_img, MORPH_CLOSE, element, Point(-1, -1), 1);
+    //  理論上 Chip區域跟
+
+#pragma region 大面積標籤 &過濾 折衷辦法 未來實作到RegionPartition內部 來提升效率
+    vector<vector<Point>> countour;
+    cv::findContours(tmp_img, countour, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, Point());
+
+    vector<vector<Point>> BigRegionCountour;
+
+    for (int i = 0; i < countour.size(); i++)
+    {    
+        int _XmaxBound=-1, _YmaxBound = -1, _XminBound=INT16_MAX, _YminBound= INT16_MAX;
+    
+        bool isAddNewElement;
+
+        for (int j = 0; j < countour[i].size(); j++)
+            {
+                if (countour[i][j].x > _XmaxBound)
+                    _XmaxBound = countour[i][j].x;
+
+                if (countour[i][j].y > _YmaxBound)
+                    _YmaxBound = countour[i][j].y;
+
+                if (countour[i][j].x < _XminBound)
+                    _XminBound = countour[i][j].x;
+
+                if (countour[i][j].y < _YminBound)
+                    _YminBound = countour[i][j].y;
+
+                if (j > 20 && ((_XmaxBound - _XminBound) + 1 == tmp_img.size().width || (_YmaxBound - _YminBound) + 1 == tmp_img.size().height))
+                {
+                    isAddNewElement = true;
+                    BigRegionCountour.push_back(countour[i]);//如果影像有拍到角點&背景影像 背景影像
+                    break;
+                }
+
+            }
+
+    }
+    tmp_img.release();
+
+    tmp_img = cv::Mat::zeros(result.size(), CV_8UC1);
+    cv::fillPoly(tmp_img, BigRegionCountour, cv::Scalar(255));
+    result = result - tmp_img;
+    tmp_img.release();
+#pragma endregion
+
+
+
 
     if (src.channels() == 3)
         cvtColor(imgOut, imgOut, COLOR_GRAY2RGB);
@@ -60,9 +112,15 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
     
     float maxArea = ra * rb * ra_Max*rb_Max;
     float minArea = ra * rb *ra_Min*rb_Min;
+
     vector<BlobInfo> vChips = RegionPartition(result, maxArea, minArea);
+
+
+
+
+
+
     vector<BlobInfo> vChips_Comfirmed;
-    vector<BlobInfo> vChips_NotSure;
 
     float _angle = 0;
     float _rectangularity = 0;
@@ -71,10 +129,13 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
     for (int i = 0; i < vChips.size(); i++)
     {
+        //_angle+= vChips[i].Rectangularity();
         _rectangularity += vChips[i].Rectangularity();
         _bulkiness+= vChips[i].Bulkiness();
         _AspectRatio += vChips[i].AspectRatio();
     }
+
+    //_angle/= vChips.size();
     _rectangularity /= vChips.size();
     _bulkiness/= vChips.size();
     _AspectRatio/= vChips.size();
@@ -90,37 +151,29 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
         if (abs(vChips[i].Rectangularity() - _rectangularity) > 0.1)
             continue;
 
+        //用角度過濾效果不佳
+        //if (abs(vChips[i].Angle() - _angle) > 25)
+        //    continue;
+
         vChips_Comfirmed.push_back(vChips[i]);// 通常會找到 Chip 有所滑動的情況
     }
     
 
-    if (vChips_Comfirmed.size() < 10)
+    if (vChips_Comfirmed.size() < 8)
     {
         notFoundReason = 1;
         grayimg.release();
         result.release();
 
-        //-----標出 找到的Chip
-
         for (int i = 0; i < vChips_Comfirmed.size(); i++)
         {
             if (imgOut.channels() == 3)
-            {
                 cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(0, 0, 255), 1, 50, 5);
-            }
             else if (imgOut.channels() == 4)
-            {
                 cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(0, 0, 255,255), 1, 50, 5);
-            }
             else if (imgOut.channels() == 1)
-            {
                 cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(150,150,150), 1, 50, 5);
-            }
-
-
         }
-
-
 
         return;
         //throw "Can Not Find Enough Chips On Image. At least 5 Chips in Frame ...";
@@ -297,6 +350,19 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
     }
 
+    //-----DEBUG
+    for (int i = 0; i < vChips_Comfirmed.size(); i++)
+    {
+        if (imgOut.channels() == 3)
+            cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(0, 0, 255), 1, 50, 5);
+        else if (imgOut.channels() == 4)
+            cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(0, 0, 255, 255), 1, 50, 5);
+        else if (imgOut.channels() == 1)
+            cv::drawMarker(imgOut, vChips_Comfirmed[i].Center(), Scalar(150, 150, 150), 1, 50, 5);
+    }
+
+
+    //--------------------------
     atanVal *= -1;
 
     fAngleOutput = atanVal;

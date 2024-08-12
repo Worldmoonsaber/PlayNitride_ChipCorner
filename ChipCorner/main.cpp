@@ -5,9 +5,9 @@ int main()
 {
     Mat img,imgOut;
 
-    for (int i = 1; i < 30; i++)
+    for (int i = 1; i < 35; i++)
     {
-     // int i = 27;
+        //i = 28;
         string str = "C:\\Git\\Code\\ChipCorner\\SampleImage\\0806-"+to_string(i) + ".bmp";
         img = imread(str);
         cvtColor(img, img, COLOR_RGB2RGBA);
@@ -22,7 +22,9 @@ int main()
         pm.Parameters[5] = 15;//Chip ShortSide
         pm.Parameters[6] = 0.7;//Chip ShortSide Min Tolerance
         pm.Parameters[7] = 1.5;//Chip ShortSide Max Tolerance
-        pm.Parameters[8] = 500;// Edge Exclusion Distance
+        pm.Parameters[8] = 70;//Chip X Pitch
+        pm.Parameters[9] = 70;//Chip Y Pitch
+        pm.Parameters[10] = 500;// Edge Exclusion Distance
 
         Point ptCorner;
         int notFoundReason = 0;
