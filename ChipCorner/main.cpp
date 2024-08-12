@@ -5,9 +5,9 @@ int main()
 {
     Mat img,imgOut;
 
+    //----待驗證 晶片是暗色 背景較亮的情境
     for (int i = 1; i < 35; i++)
     {
-        //i = 28;
         string str = "C:\\Git\\Code\\ChipCorner\\SampleImage\\0806-"+to_string(i) + ".bmp";
         img = imread(str);
         cvtColor(img, img, COLOR_RGB2RGBA);
