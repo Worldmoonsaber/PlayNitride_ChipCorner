@@ -4,5 +4,6 @@
 	<Property Name="NI.Lib.SourceVersion" Type="Int">385908736</Property>
 	<Property Name="NI.Lib.Version" Type="Str">1.0.0.0</Property>
 	<Item Name="AOILib_MTUchipcorner_V1.dll" Type="Document" URL="/&lt;userlib&gt;/AOILib_MTUchipcorner_V1/AOILib_MTUchipcorner_V1.dll"/>
-	<Item Name="MTU Chip Corner Get Corner.vi" Type="VI" URL="/&lt;userlib&gt;/AOILib_MTUchipcorner_V1/VIs/MTU Chip Corner Get Corner.vi"/>
+	<Item Name="MTUchipcorner.vi" Type="VI" URL="/&lt;userlib&gt;/AOILib_MTUchipcorner_V1/VIs/MTUchipcorner.vi"/>
+	<Item Name="MTUChipCornerSample.vi" Type="VI" URL="/&lt;userlib&gt;/AOILib_MTUchipcorner_V1/MTUChipCornerSample.vi"/>
 </Library>
