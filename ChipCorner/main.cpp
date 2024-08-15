@@ -1,18 +1,30 @@
 ﻿#include "MTChipCorner_lib.h"
 #include "OpenCV_Extension_Tool.h"
+#include "OpenCV_DEBUG_Tool.h"
 
 int main()
 {
     Mat img,imgOut;
 
     //----待驗證 晶片是暗色 背景較亮的情境
-    for (int i = 1; i < 35; i++)
+   // for (int i = 1; i < 36; i++)
     {
+        int i = 34;
         string str = "C:\\Git\\Code\\ChipCorner\\SampleImage\\0806-"+to_string(i) + ".bmp";
         img = imread(str);
         cvtColor(img, img, COLOR_RGB2RGBA);
 
+        bool isLoadSucceed;
+        vector<float> vPm;
+        readFileParameter(str + ".txt", isLoadSucceed, vPm);
         param pm;
+
+        for (int j = 0; j < 19; j++)
+        {
+            pm.Parameters[j] = vPm[j];
+        }
+
+        /*
         pm.Parameters[0] = 1;//SelectMode  0:DARK 1:Light
         pm.Parameters[1] = 30;//Threshold Value 0~255
 
@@ -25,6 +37,7 @@ int main()
         pm.Parameters[8] = 70;//Chip X Pitch
         pm.Parameters[9] = 70;//Chip Y Pitch
         pm.Parameters[10] = 500;// Edge Exclusion Distance
+        */
 
         Point ptCorner;
         int notFoundReason = 0;
@@ -68,6 +81,18 @@ int main()
         }
 
         imwrite(str + ".result.jpg", imgResize);
+
+        bool isSaveSucceed;
+
+        vector<float> vFloat;
+
+        
+        for (int j = 0; j < 19; j++)
+        {
+            vFloat.push_back(pm.Parameters[j]);
+        }
+
+        //saveFileParameter(str + ".txt", isSaveSucceed, vFloat);
     }
 
     return 0;

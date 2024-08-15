@@ -146,10 +146,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\OpenCV_Tool\OpenCV_ExtensionTool\OpenCV_DEBUG_Tool.h" />
     <ClInclude Include="MTChipCorner_lib.h" />
     <ClInclude Include="OpenCV_Extension_Tool.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\OpenCV_Tool\OpenCV_ExtensionTool\OpenCV_DEBUG_Tool.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MTChipCorner_lib.cpp" />
     <ClCompile Include="OpenCV_Extension_Tool.cpp" />
