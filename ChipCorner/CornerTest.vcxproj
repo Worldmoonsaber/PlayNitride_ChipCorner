@@ -131,7 +131,7 @@
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>NotSet</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -140,9 +140,8 @@
       </HeapReserveSize>
       <HeapCommitSize>
       </HeapCommitSize>
-      <StackReserveSize>20000000000</StackReserveSize>
-      <StackCommitSize>
-      </StackCommitSize>
+      <StackReserveSize>2000000000</StackReserveSize>
+      <StackCommitSize>2000000000</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

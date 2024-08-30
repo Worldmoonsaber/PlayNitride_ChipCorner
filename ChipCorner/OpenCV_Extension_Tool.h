@@ -20,7 +20,9 @@ class BlobInfo
 {
 public:
     BlobInfo(vector<Point> vArea, vector<Point> vContour);
-
+    BlobInfo();
+    BlobInfo(Mat ImgRegion);
+    void CaculateBlob(vector<Point> vArea, vector<Point> vContour);
     void Release();
     int Area();
 
@@ -62,7 +64,8 @@ public:
     int Ymin();
     int Xmax();
     int Ymax();
-
+    int Width();
+    int Height();
     /// <summary>
     /// 蓬鬆度
     /// </summary>
@@ -108,6 +111,8 @@ private:
     float _compactness = -1;
     float _roundness = -1;
     float _sides = -1;
+    float _Width = -1;
+    float _Height = -1;
 };
 
 class BlobFilter
@@ -130,6 +135,8 @@ public:
     float MaxYbound();
     float MinYbound();
 
+    bool IsEnableSubRegion();
+
 
     void SetEnableArea(bool enable);
     void SetMaxArea(float value);
@@ -147,9 +154,11 @@ public:
     void SetMaxGrayLevel(float value);
     void SetMinGrayLevel(float value);
 
+    void SetEnableSubRegion(bool enable);
 
 private:
-    map<string, FilterCondition> map;
+    map<string, FilterCondition> mapConditions;
+    map<string, bool> mapBool;
 
     void _setMaxPokaYoke(string title, float value);
     void _setMinPokaYoke(string title, float value);
@@ -179,4 +188,15 @@ vector<BlobInfo> RegionPartitionNonMultiThread(Mat ImgBinary, int maxArea, int m
 vector<BlobInfo> RegionPartitionNonMultiThread(Mat ImgBinary);
 
 
+/// <summary>
+/// 理論上可行 但是速度太慢
+/// </summary>
+/// <param name="ImgBinary"></param>
+/// <returns></returns>
+vector<BlobInfo> RegionPartitionTopology(Mat ImgBinary, BlobFilter filter);
 
+
+
+
+//----待測試影像切割成多張計算 Region 最後再合併跨區的Region
+vector<BlobInfo> RegionPartition2(Mat ImgBinary);

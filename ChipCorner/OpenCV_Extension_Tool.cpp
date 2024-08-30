@@ -2,72 +2,6 @@
 #include "OpenCV_Extension_Tool.h"
 
 #pragma region Region 標記 功能 內部方法
-/// <summary>
-/// 
-/// </summary>
-/// <param name="ImgBinary"></param>
-/// <param name="x"></param>
-/// <param name="y"></param>
-/// <param name="vectorPoint"></param>
-/// <param name="vContour"></param>
-/// <param name="maxArea"></param>
-/// <param name="isOverSizeExtension">輸入前必須設定為false</param>
-void RegionFloodFill(Mat& ImgBinary, int x, int y, vector<Point>& vectorPoint, vector<Point>& vContour,int maxArea,bool& isOverSizeExtension)
-{
-	if (maxArea < vectorPoint.size())
-		return;
-
-	uchar tagOverSize = 10;
-	uchar tagIdx = 101;
-
-	if (ImgBinary.at<uchar>(y, x) == 255)
-	{
-		ImgBinary.at<uchar>(y, x) = tagIdx;
-		vectorPoint.push_back(Point(x, y));
-	}
-	else if (ImgBinary.at<uchar>(y, x) == tagIdx)
-		return;
-
-	int edgesSides = 0;
-
-#pragma region 單一Region 較大時 容易出現資料堆積錯誤 專案屬性要調整
-
-	for (int j = y - 1; j <= y + 1; j++)
-		for (int i = x - 1; i <= x + 1; i++)
-		{
-			if (i == x && y == j)
-				continue;
-
-
-			if (i < 0 || j < 0)
-			{
-				edgesSides++;
-				continue;
-			}
-
-			if (i >= ImgBinary.cols || j >= ImgBinary.rows)
-			{
-				edgesSides++;
-				continue;
-			}
-
-			if (ImgBinary.at<uchar>(j, i) == 0)
-			{
-				edgesSides++;
-				continue;
-			}
-
-			if (ImgBinary.at<uchar>(j, i) == 255)
-				RegionFloodFill(ImgBinary, i, j, vectorPoint, vContour, maxArea, isOverSizeExtension);
-			else if (ImgBinary.at<uchar>(j, i) == tagOverSize)
-				isOverSizeExtension = true;
-		}
-
-#pragma endregion
-
-	if (edgesSides > 1 && edgesSides < 8)
-		vContour.push_back(Point(x, y));
-}
 
 void RegionFloodFill(uchar* ptr, int x, int y, vector<Point>& vectorPoint, vector<Point>& vContour, int maxArea, bool& isOverSizeExtension,int width,int height)
 {
@@ -114,21 +48,18 @@ void RegionFloodFill(uchar* ptr, int x, int y, vector<Point>& vectorPoint, vecto
 			}
 
 			if (ptr[i + width * j] == 255)
-				RegionFloodFill(ptr, i, j, vectorPoint, vContour, maxArea, isOverSizeExtension, width,height);
+				RegionFloodFill(ptr, i, j, vectorPoint, vContour, maxArea, isOverSizeExtension, width, height);
 			else if (ptr[i + width * j] == tagOverSize)
 				isOverSizeExtension = true;
+			else if (ptr[i + width * j] == tagIdx)
+				continue;
+
 		}
 
 #pragma endregion
 
 	if (edgesSides > 1 && edgesSides < 8)
 		vContour.push_back(Point(x, y));
-}
-
-void RegionPaint(Mat& ImgBinary, vector<Point> vPoint, uchar PaintIdx)
-{
-	for (int i = 0; i < vPoint.size(); i++)
-		ImgBinary.at<uchar>(vPoint[i].y, vPoint[i].x) = PaintIdx;
 }
 
 void RegionPaint(uchar* ptr, vector<Point> vPoint, uchar PaintIdx,int imgWidth)
@@ -138,16 +69,39 @@ void RegionPaint(uchar* ptr, vector<Point> vPoint, uchar PaintIdx,int imgWidth)
 		ptr[vPoint[i].y * imgWidth + vPoint[i].x] = PaintIdx;
 }
 
-
 #pragma endregion
 
 #pragma region BlobInfo 物件
 BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 {
+	CaculateBlob(vArea, vContour);
+}
+
+BlobInfo::BlobInfo()
+{
+}
+
+BlobInfo::BlobInfo(Mat ImgRegion)
+{
+	vector<vector<Point>> vContourArr;
+	findContours(ImgRegion, vContourArr, RETR_LIST, CHAIN_APPROX_NONE);
+	vector<Point> vContour;
+	
+	for (int i = 0; i < vContourArr.size(); i++)
+		vContour.insert(vContour.end(), vContourArr[i].begin(), vContourArr[i].end());
+
+	vector<Point> vArea;
+	findNonZero(ImgRegion, vArea);
+	CaculateBlob(vArea, vContour);
+
+	ImgRegion.release();
+}
+
+void BlobInfo::CaculateBlob(vector<Point> vArea, vector<Point> vContour)
+{
 	_contour = vContour;
 	_points = vArea;
 	_area = vArea.size();
-
 
 	float x_sum = 0, y_sum = 0;
 
@@ -175,6 +129,8 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 
 	}
 
+	_Width = _XmaxBound - _XminBound + 1;
+	_Height = _YmaxBound - _YminBound + 1;
 	_center = Point2f(x_sum / vArea.size(), y_sum / vArea.size());
 
 	float min_len = _area;
@@ -197,7 +153,6 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 		return;
 
 	RotatedRect minrect = minAreaRect(vContour);
-
 	_Angle = minrect.angle;
 
 	while (_Angle < 0 && _Angle>180)
@@ -210,7 +165,6 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 	}
 
 	float minArea = (minrect.size.height + 1) * (minrect.size.width + 1);//擬合結果其實是內縮的 所以要+1
-
 	_minRectHeight = minrect.size.height + 1;
 	_minRectWidth = minrect.size.width + 1;
 
@@ -229,14 +183,12 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 
 	_bulkiness = CV_PI * _Ra / 2 * _Rb / 2 / _area * 1.0;
 
-
 	if (minArea < _area)
 		_rectangularity = minArea / _area;
 	else
 		_rectangularity = _area / minArea;
 
 	_rectangularity = abs(_rectangularity);
-
 	_compactness = (1.0 * _contour.size()) * (1.0 * _contour.size()) / (4.0 * CV_PI * _area);
 
 	// _compactness 公式
@@ -260,10 +212,9 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 			float d = norm(_center - (Point2f)_contour[i]);
 			distance += d;
 		}
+
 		distance /= _contour.size();
-
 		float sigma;
-
 		float diff = 0;
 
 		for (int i = 0; i < _contour.size(); i++)
@@ -273,12 +224,10 @@ BlobInfo::BlobInfo(vector<Point> vArea, vector<Point> vContour)
 		}
 
 		diff = sqrt(diff);
-
 		sigma = diff / sqrt(_contour.size() * 1.0);
 		_roundness = 1 - sigma / distance;
 		_sides = (float)1.411 * pow((distance / sigma), (0.4724));
 	}
-
 
 	// Moments openCV已經存在實作 沒有必要加入此類特徵 有需要在呼叫即可
 }
@@ -287,6 +236,23 @@ void BlobInfo::Release()
 {
 	_contour.clear();
 	_points.clear();
+	_area = -1;
+	_circularity = -1;
+	_rectangularity = -1;
+	_XminBound = -1;
+	_YminBound = -1;
+	_XmaxBound = -1;
+	_YmaxBound = -1;
+	_minRectWidth = -1;
+	_minRectHeight = -1;
+	_Angle = -1;
+	_AspectRatio = -1;
+	_Ra = -1;
+	_Rb = -1;
+	_bulkiness = -1;
+	_compactness = -1;
+	_roundness = -1;
+	_sides = -1;
 }
 
 int BlobInfo::Area()
@@ -377,6 +343,16 @@ int BlobInfo::Ymax()
 	return _YmaxBound;
 }
 
+int BlobInfo::Width()
+{
+	return _Width;
+}
+
+int BlobInfo::Height()
+{
+	return _Height;
+}
+
 float BlobInfo::Bulkiness()
 {
 	return _bulkiness;
@@ -429,80 +405,86 @@ BlobFilter::BlobFilter()
 
 
 
-	map.insert(std::pair<string, FilterCondition>(condition1.FeatureName, condition1));
-	map.insert(std::pair<string, FilterCondition>(condition2.FeatureName, condition2));
-	map.insert(std::pair<string, FilterCondition>(condition3.FeatureName, condition3));
+	mapConditions.insert(std::pair<string, FilterCondition>(condition1.FeatureName, condition1));
+	mapConditions.insert(std::pair<string, FilterCondition>(condition2.FeatureName, condition2));
+	mapConditions.insert(std::pair<string, FilterCondition>(condition3.FeatureName, condition3));
+	mapBool.insert(std::pair<string, bool>("SubRegion", true));
 }
 
 BlobFilter::~BlobFilter()
 {
-	map.clear();
+	mapConditions.clear();
 }
 
 void BlobFilter::_setMaxPokaYoke(string title, float value)
 {
-	if (map[title].MinimumValue < value)
-		map[title].MaximumValue = value;
+	if (mapConditions[title].MinimumValue < value)
+		mapConditions[title].MaximumValue = value;
 	else
-		map[title].MaximumValue = map[title].MinimumValue;
+		mapConditions[title].MaximumValue = mapConditions[title].MinimumValue;
 }
 
 void BlobFilter::_setMinPokaYoke(string title, float value)
 {
-	if (map[title].MaximumValue > value)
-		map[title].MinimumValue = value;
+	if (mapConditions[title].MaximumValue > value)
+		mapConditions[title].MinimumValue = value;
 	else
-		map[title].MinimumValue = map[title].MaximumValue;
+		mapConditions[title].MinimumValue = mapConditions[title].MaximumValue;
 }
 
 bool BlobFilter::IsEnableArea()
 {
-	return map["area"].Enable;
+	return mapConditions["area"].Enable;
 }
 
 float BlobFilter::MaxArea()
 {
-	return map["area"].MaximumValue;
+	return mapConditions["area"].MaximumValue;
 }
 
 float BlobFilter::MinArea()
 {
-	return map["area"].MinimumValue;
+	return mapConditions["area"].MinimumValue;
 }
 
 bool BlobFilter::IsEnableXbound()
 {
-	return map["xBound"].Enable;
+	return mapConditions["xBound"].Enable;
 }
 
 float BlobFilter::MaxXbound()
 {
-	return map["xBound"].MaximumValue;
+	return mapConditions["xBound"].MaximumValue;
 }
 
 float BlobFilter::MinXbound()
 {
-	return map["xBound"].MinimumValue;
+	return mapConditions["xBound"].MinimumValue;
 }
 
 bool BlobFilter::IsEnableYbound()
 {
-	return map["yBound"].Enable;
+	return mapConditions["yBound"].Enable;
 }
 
 float BlobFilter::MaxYbound()
 {
-	return map["yBound"].MaximumValue;
+	return mapConditions["yBound"].MaximumValue;
 }
 
 float BlobFilter::MinYbound()
 {
-	return map["yBound"].MinimumValue;
+	return mapConditions["yBound"].MinimumValue;
+}
+
+bool BlobFilter::IsEnableSubRegion()
+{
+	return mapBool["SubRegion"];
 }
 
 void BlobFilter::SetEnableArea(bool enable)
 {
-	map["area"].Enable = enable;
+	mapConditions["area"].Enable = enable;
 }
 
 void BlobFilter::SetMaxArea(float value)
@@ -517,7 +499,7 @@ void BlobFilter::SetMinArea(float value)
 
 void BlobFilter::SetEnableXbound(bool enable)
 {
-	map["xBound"].Enable = enable;
+	mapConditions["xBound"].Enable = enable;
 }
 
 void BlobFilter::SetMaxXbound(float value)
@@ -532,7 +514,7 @@ void BlobFilter::SetMinXbound(float value)
 
 void BlobFilter::SetEnableYbound(bool enable)
 {
-	map["yBound"].Enable = enable;
+	mapConditions["yBound"].Enable = enable;
 }
 
 void BlobFilter::SetMaxYbound(float value)
@@ -547,23 +529,28 @@ void BlobFilter::SetMinYbound(float value)
 
 void BlobFilter::SetEnableGrayLevel(bool enable)
 {
-	map["grayLevel"].Enable = enable;
+	mapConditions["grayLevel"].Enable = enable;
 }
 
 void BlobFilter::SetMaxGrayLevel(float value)
 {
-	if (value >= 0 && value <= 255 && value > map["grayLevel"].MinimumValue)
-		map["grayLevel"].MaximumValue = (int)value;
+	if (value >= 0 && value <= 255 && value > mapConditions["grayLevel"].MinimumValue)
+		mapConditions["grayLevel"].MaximumValue = (int)value;
 	else
-		map["grayLevel"].MaximumValue = map["grayLevel"].MinimumValue;
+		mapConditions["grayLevel"].MaximumValue = mapConditions["grayLevel"].MinimumValue;
 }
 
 void BlobFilter::SetMinGrayLevel(float value)
 {
-	if (value >= 0 && value <= 255 && value < map["grayLevel"].MaximumValue)
-		map["grayLevel"].MinimumValue = (int)value;
+	if (value >= 0 && value <= 255 && value < mapConditions["grayLevel"].MaximumValue)
+		mapConditions["grayLevel"].MinimumValue = (int)value;
 	else
-		map["grayLevel"].MinimumValue = map["grayLevel"].MaximumValue;
+		mapConditions["grayLevel"].MinimumValue = mapConditions["grayLevel"].MaximumValue;
+}
+
+void BlobFilter::SetEnableSubRegion(bool enable)
+{
+	mapBool["SubRegion"] = enable;
 }
 
 #pragma endregion
@@ -653,6 +640,7 @@ void BlobInfoThreadObject::thread_WorkContent(queue <tuple<vector<Point>, vector
 vector<BlobInfo> RegionPartition(Mat ImgBinary,int maxArea, int minArea)
 {
 	vector<BlobInfo> lst;
+	lst.reserve(100);
 	uchar tagOverSize = 10;
 	Mat ImgTag = ImgBinary.clone();
 
@@ -790,12 +778,14 @@ vector<BlobInfo> RegionPartition(Mat ImgBinary, BlobFilter filter)
 vector<BlobInfo> RegionPartitionNonMultiThread(Mat ImgBinary, int maxArea, int minArea)
 {
 	vector<BlobInfo> lst;
+	lst.reserve(100);
 	uchar tagOverSize = 10;
 	Mat ImgTag = ImgBinary.clone();
 
 	uchar* _ptr = (uchar*)ImgTag.data;
 	int ww = ImgBinary.cols;
 	int hh = ImgBinary.rows;
+
 
 	for (int i = 0; i < ww; i++)
 		for (int j = 0; j < hh; j++)
@@ -835,3 +825,200 @@ vector<BlobInfo> RegionPartitionNonMultiThread(Mat ImgBinary)
 {
 	return RegionPartitionNonMultiThread(ImgBinary,INT16_MAX,0);
 }
+
+
+void RegionPartitionTopologySubLayerAnalysis(cv::Size sz,int layer,int curIndex, vector<vector<Point>> vContour, vector<Vec4i> vhi,vector<BlobInfo>& lstBlob)
+{
+	int type = layer % 2;
+	//--- 0 此層為Region
+	//--- 1 此層為挖空區
+
+	if (type == 0)
+	{
+		Mat img = Mat(sz, CV_8UC1);
+		//----沒有子階層
+		fillConvexPoly(img, vContour[curIndex], Scalar(255, 255, 255));
+
+		//---刪除子階層
+		int idx = vhi[curIndex].val[2];
+		vector<int> subIndx;
+
+		if (idx != -1)
+		{
+			while (true)
+			{
+				fillConvexPoly(img, vContour[idx], Scalar(0, 0, 0));
+
+				if (vhi[idx].val[2] != -1)
+					subIndx.push_back(vhi[idx].val[2]);
+
+				if (vhi[idx].val[0] == -1)
+					break;
+
+				idx = vhi[idx].val[0];
+			}
+		}
+
+		BlobInfo blob = BlobInfo(img);
+		lstBlob.push_back(blob);
+
+		for (int i = 0; i < subIndx.size(); i++)
+			RegionPartitionTopologySubLayerAnalysis(sz, layer + 1, subIndx[i], vContour, vhi, lstBlob);
+	}
+	else
+	{
+		//---挖空區域 觀察是否存在 子區域
+
+		int idx = vhi[curIndex].val[2];
+		vector<int> subIndx;
+
+		if (idx != -1)
+		{
+			while (true)
+			{
+				if (vhi[idx].val[2] != -1)
+					subIndx.push_back(vhi[idx].val[2]);
+
+				if (vhi[idx].val[0] == -1)
+					break;
+
+				idx = vhi[idx].val[0];
+			}
+		}
+
+		for (int i = 0; i < subIndx.size(); i++)
+			RegionPartitionTopologySubLayerAnalysis(sz, layer + 1, subIndx[i], vContour, vhi, lstBlob);
+
+	}
+}
+
+
+/// <summary>
+///  實測結果比較慢 (理論上應該要比較快) 待釐清
+/// </summary>
+/// <param name="ImgBinary"></param>
+/// <param name="filter"></param>
+/// <returns></returns>
+vector<BlobInfo> RegionPartitionTopology(Mat ImgBinary, BlobFilter filter)
+{
+	vector<BlobInfo> vRes;
+	//https://blog.csdn.net/qinglingLS/article/details/106270095
+	// 準備用拓樸的方式重構方法
+
+	vector<vector<Point>> vContour;
+	vector<Vec4i> vhi;
+	//
+	//  [下一個,上一個,子層,父層]
+	//
+	findContours(ImgBinary, vContour, vhi, RETR_CCOMP, CHAIN_APPROX_NONE);
+
+	int layer = 0;
+
+	int i = 0;
+	while (true)
+	{
+		if (vhi[i].val[2] == -1)
+		{
+			Mat img = Mat(ImgBinary.size(), CV_8UC1);
+			//----沒有子階層
+			fillConvexPoly(img, vContour[i], Scalar(255, 255, 255));
+			BlobInfo blob = BlobInfo(img);
+			vRes.push_back(blob);
+			img.release();
+		}
+		else
+		{
+			//----有階層 待扣除坑洞區域
+			RegionPartitionTopologySubLayerAnalysis(ImgBinary.size(),0, i, vContour, vhi, vRes);
+		}
+
+
+		if (vhi[i].val[0] == -1)
+			break;
+
+		i = vhi[i].val[0];
+	}
+
+	return vRes;
+}
+
+
+
+
+
+
+void thread_Content(Mat* img, int maxArea, int minArea, int starY, int endY , vector<BlobInfo>* vResult, vector<BlobInfo>* vEdge)
+{
+	//vector<BlobInfo> lst;
+	uchar tagOverSize = 10;
+	Mat ImgTag = img->clone();
+
+	uchar* _ptr = (uchar*)ImgTag.data;
+	int ww = img->cols;
+	int hh = img->rows;
+
+	BlobInfoThreadObject blobInfoThread;
+	blobInfoThread.Initialize();
+
+	for (int i = 0; i < ww; i++)
+		for (int j = starY; j < endY; j++)
+		{
+			uchar val = _ptr[ww * j + i];
+			bool isOverSizeExtension = false;
+
+			if (val == 255)
+			{
+				vector<Point> vArea;
+				vector<Point> vContour;
+				RegionFloodFill(_ptr, i, j, vArea, vContour, maxArea, isOverSizeExtension, ww, hh);
+
+				if (vArea.size() > maxArea || isOverSizeExtension)
+				{
+					RegionPaint(_ptr, vArea, tagOverSize, ww);
+					continue;
+				}
+				else if (vArea.size() <= minArea)
+				{
+					RegionPaint(_ptr, vArea, 0, ww);
+					continue;
+				}
+				blobInfoThread.AddObject(vArea, vContour);
+				RegionPaint(_ptr, vArea, 0, ww);
+			}
+		}
+
+	blobInfoThread.WaitWorkDone();
+	vResult[0] = blobInfoThread.GetObj();
+
+}
+
+
+//--經過初步測試效益不高
+//vector<BlobInfo> RegionPartition2(Mat ImgBinary)
+//{
+//	vector<BlobInfo> result;
+//
+//	vector<thread> vThread;
+//
+//	Mat img = ImgBinary.clone();
+//	
+//	int max = INT16_MAX;
+//	int min = INT16_MIN;
+//
+//	int mid = (int)(0.5 * (img.rows));
+//
+//
+//	vector<BlobInfo> vResult1; 
+//	vector<BlobInfo> vEdge1;
+//	vector<BlobInfo> vResult2; 
+//	vector<BlobInfo> vEdge2;
+//	//thread thr1(thread_Content, &ImgBinary, INT16_MAX, INT16_MIN, 0, mid, &vResult1, &vEdge1);
+//
+//	int endY = img.rows;
+//	thread thr2(thread_Content, &ImgBinary, INT16_MAX, 0,mid,endY, &vResult2, &vEdge2);
+//
+//	//thr1.join();
+//	thr2.join();
+//
+//	return vResult2;
+//}
