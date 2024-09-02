@@ -4,6 +4,8 @@
 #include<opencv2/highgui/highgui.hpp>
 #include<opencv2/imgproc/imgproc.hpp> //mophorlogical operation
 #include<opencv2/core.hpp>
+#include<vector>
+
 
 using namespace cv;
 using namespace std;
@@ -194,9 +196,3 @@ vector<BlobInfo> RegionPartitionNonMultiThread(Mat ImgBinary);
 /// <param name="ImgBinary"></param>
 /// <returns></returns>
 vector<BlobInfo> RegionPartitionTopology(Mat ImgBinary, BlobFilter filter);
-
-
-
-
-//----待測試影像切割成多張計算 Region 最後再合併跨區的Region
-vector<BlobInfo> RegionPartition2(Mat ImgBinary);
