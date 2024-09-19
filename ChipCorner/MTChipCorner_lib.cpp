@@ -56,7 +56,7 @@ void GetChipCorner(Mat src, param Param, int& notFoundReason, Point& CornerPoint
 
     //  理論上 Chip區域跟
 
-#pragma region 大面積標籤 &過濾 折衷辦法 未來實作到RegionPartition內部 來提升效率
+#pragma region 大面積標籤 &過濾 折衷辦法 未來實作到RegionPartition內部 來提升效率  (使用 Topology 方式可以改善 未來有需要更新檔案時再修改)
 
     if (chip_x_pitch * chip_y_pitch != 0)
     {
